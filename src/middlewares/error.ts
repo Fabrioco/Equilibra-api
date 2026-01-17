@@ -1,4 +1,5 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
 
 export class AppError extends Error {
   status: number;
@@ -9,17 +10,35 @@ export class AppError extends Error {
 }
 
 export function errorHandler(
-  err: AppError,
+  err: unknown,
   req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) {
-  if (err instanceof AppError) {
-    return res
-      .status(err.status)
-      .json({ message: err.message, statusCode: err.status });
+  if (err instanceof ZodError) {
+    const errors = err.issues.reduce<Record<string, string[]>>((acc, issue) => {
+      const field = issue.path.join(".");
+      if (!acc[field]) acc[field] = [];
+      acc[field].push(issue.message);
+      return acc;
+    }, {});
+
+    return res.status(400).json({
+      message: "Validation error",
+      errors,
+      statusCode: 400,
+    });
   }
 
-  console.log(err);
-  return res.status(500).json({ message: "Internal Server Error" });
+  if (err instanceof AppError) {
+    return res.status(err.status).json({
+      message: err.message,
+      statusCode: err.status,
+    });
+  }
+
+  return res.status(500).json({
+    message: "Internal Server Error",
+    statusCode: 500,
+  });
 }
