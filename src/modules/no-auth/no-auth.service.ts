@@ -47,6 +47,7 @@ class noAuthService {
 
     const user = await prisma.user.findFirst({
       where: {
+        email: dto.email,
         resetToken: tokenHash,
         tokenExpiresAt: {
           gt: new Date(),
@@ -55,34 +56,24 @@ class noAuthService {
     });
 
     if (!user) {
-      throw new AppError("Invalid or expired token", 401);
+      throw new AppError("User not found", 404);
     }
-
-    // invalida o token após verificação
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetToken: null,
-        tokenExpiresAt: null,
-      },
-    });
 
     return {
       status: "ok",
       message: "Token is valid",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
     };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
+    const tokenHash = this.hashOtp(dto.token);
     const user = await prisma.user.findFirst({
       where: {
-        id: dto.id,
         email: dto.email,
+        resetToken: tokenHash,
+        tokenExpiresAt: {
+          gt: new Date(),
+        },
       },
     });
 
@@ -98,17 +89,15 @@ class noAuthService {
     const newPassword = await bcrypt.hash(dto.newPassword, salt);
 
     await prisma.user.update({
-      where: { id: user.id, email: dto.email },
+      where: { id: user.id },
       data: {
         password: newPassword,
+        resetToken: null,
+        tokenExpiresAt: null,
       },
     });
     return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
+      message: "Password updated successfully",
     };
   }
 
