@@ -3,6 +3,7 @@ import { AppError } from "../../middlewares/error";
 import { mailTransporter } from "../../utils/email.util";
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto";
 import crypto from "crypto";
+import { VerifyTokenDto } from "./dtos/verify-token.dto";
 
 class noAuthService {
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -39,8 +40,40 @@ class noAuthService {
     });
   }
 
+  async verifyToken(dto: VerifyTokenDto) {
+    const tokenHash = this.hashOtp(dto.token);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: tokenHash,
+        tokenExpiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError("Invalid or expired token", 401);
+    }
+
+    // invalida o token após verificação
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: null,
+        tokenExpiresAt: null,
+      },
+    });
+
+    return true;
+  }
+
   private hashOtp(code: string): string {
     return crypto.createHash("sha256").update(code).digest("hex");
+  }
+
+  private compareOtp(code: string, hash: string): boolean {
+    return this.hashOtp(code) === hash;
   }
 
   private generateOtp(): string {
