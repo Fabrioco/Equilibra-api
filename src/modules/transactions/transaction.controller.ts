@@ -3,6 +3,7 @@ import service from "./transaction.service";
 import { CreateTransactionSchema } from "./dtos/create-transaction.dto";
 import { GetTransactionsQuerySchema } from "./dtos/get-transaction.dto";
 import { UpdateTransactionSchema } from "./dtos/update-transaction.dto";
+import { AppError } from "../../middlewares/error";
 
 class TransactionController {
   async createTransaction(req: Request, res: Response) {
@@ -47,9 +48,25 @@ class TransactionController {
   }
 
   async deleteTransaction(req: Request, res: Response) {
-    const result = await service.deleteTransaction(+req.params.id, req.user.id);
+    const id = Number(req.params.id);
 
-    return res.status(200).json(result);
+    if (!id) {
+      throw new AppError("Invalid transaction id", 400);
+    }
+
+    const scope = req.query.scope === "all" ? "ALL" : "ONE";
+
+    await service.deleteTransaction(id, req.user.id, scope);
+
+    return res.status(204).send();
+  }
+
+  async deleteAllInstallments(req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    await service.deleteTransaction(id, req.user.id, "ALL");
+
+    return res.status(204).send();
   }
 }
 

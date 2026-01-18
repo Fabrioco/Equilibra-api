@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middlewares/error";
 import { CreateTransactionDto } from "./dtos/create-transaction.dto";
 import {
+  Transaction,
   TransactionRecurrence,
   TransactionType,
 } from "../../generated/prisma/client";
@@ -146,19 +147,33 @@ class TransactionService {
     });
   }
 
-  async deleteTransaction(id: number, userId: number) {
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
-    });
+  async deleteTransaction(
+    id: number,
+    userId: number,
+    scope: "ONE" | "ALL" = "ONE",
+  ) {
+    const transaction = await this.getTransactionOrFail(id, userId);
 
-    if (!transaction || transaction.userId !== userId) {
-      throw new AppError("Transaction not found", 404);
+    if (transaction.recurrence === "ONE_TIME") {
+      return this.deleteOneTime(id);
     }
 
-    return prisma.transaction.delete({
-      where: { id },
-    });
+    if (transaction.recurrence === "FIXED") {
+      return this.deleteFixed(id);
+    }
+
+    if (transaction.recurrence === "INSTALLMENT") {
+      if (scope === "ALL") {
+        return this.deleteAllInstallments(transaction);
+      }
+
+      return this.deleteOneInstallment(transaction);
+    }
+
+    throw new AppError("Invalid delete operation", 400);
   }
+
+  
 
   private async createOneTime(userId: number, dto: CreateTransactionDto) {
     return prisma.transaction.create({
@@ -173,6 +188,48 @@ class TransactionService {
       },
     });
   }
+
+  private async getTransactionOrFail(id: number, userId: number) {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+    });
+
+    if (!transaction || transaction.userId !== userId) {
+      throw new AppError("Transaction not found", 404);
+    }
+
+    return transaction;
+  }
+
+  private async deleteOneTime(id: number) {
+    return prisma.transaction.delete({
+      where: { id },
+    });
+  }
+
+  private async deleteFixed(id: number) {
+    return prisma.transaction.delete({
+      where: { id },
+    });
+  }
+
+  private async deleteOneInstallment(transaction: Transaction) {
+    return prisma.transaction.delete({
+      where: { id: transaction.id },
+    });
+  }
+
+  private async deleteAllInstallments(transaction: Transaction) {
+    return prisma.transaction.deleteMany({
+      where: {
+        userId: transaction.userId,
+        recurrence: "INSTALLMENT",
+        title: transaction.title,
+        totalInstallment: transaction.totalInstallment,
+      },
+    });
+  }
+
   private async createFixed(userId: number, dto: CreateTransactionDto) {
     return prisma.transaction.create({
       data: {

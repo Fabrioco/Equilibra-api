@@ -8,5 +8,5 @@ router.get("/", controller.getTransactions);
 router.get("/:id", controller.getOneTransaction);
 router.put("/:id", controller.updateTransaction);
 router.delete("/:id", controller.deleteTransaction);
-
+router.delete("/installments/:id", controller.deleteAllInstallments);
 export default router;
