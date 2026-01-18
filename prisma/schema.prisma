@@ -16,4 +16,37 @@ model User {
   id        Int      @id @default(autoincrement())
   resetToken     String?
   tokenExpiresAt DateTime?
+
+  transaction Transaction[]
+}
+
+model Transaction {
+  id Int @id @default(autoincrement())
+  title String
+  amount Decimal @db.Decimal(10,2)
+  category String
+  type TransactionType
+  recurrence TransactionRecurrence @default(ONE_TIME)
+
+  totalInstallment Int?
+  installmentIndex Int?
+  installmentGroupId String?
+
+  date DateTime @db.Date
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionRecurrence {
+  ONE_TIME
+  FIXED
+  INSTALLMENT
 }
