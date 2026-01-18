@@ -4,6 +4,8 @@ import { mailTransporter } from "../../utils/email.util";
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto";
 import crypto from "crypto";
 import { VerifyTokenDto } from "./dtos/verify-token.dto";
+import { ResetPasswordDto } from "./dtos/reset-password.dto";
+import bcrypt from "bcrypt";
 
 class noAuthService {
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -65,7 +67,49 @@ class noAuthService {
       },
     });
 
-    return true;
+    return {
+      status: "ok",
+      message: "Token is valid",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: dto.id,
+        email: dto.email,
+      },
+    });
+
+    if (!user) {
+      throw new AppError("Invalid or expired token", 401);
+    }
+
+    if (dto.confirmNewPassword !== dto.newPassword) {
+      throw new AppError("Passwords do not match", 400);
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const newPassword = await bcrypt.hash(dto.newPassword, salt);
+
+    await prisma.user.update({
+      where: { id: user.id, email: dto.email },
+      data: {
+        password: newPassword,
+      },
+    });
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    };
   }
 
   private hashOtp(code: string): string {
