@@ -18,6 +18,7 @@ model User {
   tokenExpiresAt DateTime?
 
   transaction Transaction[]
+  goal Goal[]
 }
 
 model Transaction {
@@ -35,6 +36,20 @@ model Transaction {
   date DateTime @db.Date
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Goal {
+  id Int @id @default(autoincrement())
+  title String
+  amountCurrent Decimal @db.Decimal(10,2)
+  amountGoal Decimal @db.Decimal(10,2)
+  date DateTime @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
 
   userId Int
   user User @relation(fields: [userId], references: [id])
