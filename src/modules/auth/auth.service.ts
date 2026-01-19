@@ -80,6 +80,23 @@ class AuthService {
     };
   }
 
+  async me(userId: number) {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+      omit: {
+        password: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    return user;
+  }
+
   private async hashPassword(password: string) {
     if (!password) {
       throw new AppError("Password is required", 400);

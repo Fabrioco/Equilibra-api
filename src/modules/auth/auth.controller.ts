@@ -24,6 +24,11 @@ class AuthController {
     const result = await service.login(parsed.data!);
     res.status(200).json(result);
   }
+
+  async me(req: Request, res: Response) {
+    const result = await service.me(req.user.id);
+    res.status(200).json(result);
+  }
 }
 
 export default new AuthController();
