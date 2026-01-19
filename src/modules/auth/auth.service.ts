@@ -108,15 +108,36 @@ class AuthService {
     if (!user) {
       throw new AppError("User not found", 404);
     }
+
+    if (dto.email && dto.email !== user.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: dto.email,
+        },
+      });
+
+      if (existingUser) {
+        throw new AppError("Email already in use", 409);
+      }
+    }
+
+    const updateData: {
+      name?: string;
+      email?: string;
+      password?: string;
+    } = {};
+
+    if (dto.name) updateData.name = dto.name;
+    if (dto.email) updateData.email = dto.email;
+    if (dto.password) {
+      updateData.password = await this.hashPassword(dto.password);
+    }
+
     return await prisma.user.update({
       where: {
         id: userId,
       },
-      data: {
-        name: dto.name,
-        email: dto.email,
-        password: dto.password,
-      },
+      data: updateData,
       omit: {
         password: true,
       },

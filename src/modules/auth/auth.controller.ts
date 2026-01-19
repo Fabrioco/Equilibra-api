@@ -6,35 +6,26 @@ import { UpdateMeSchema } from "./dtos/update-me.dto";
 
 class AuthController {
   async register(req: Request, res: Response) {
-    const parsed = RegisterRequestSchema.safeParse(req.body);
-
-    if (!parsed.success) {
-      res.status(400).json({
-        message: "invalid request",
-        errors: parsed.error.flatten(),
-      });
-    }
-
-    const result = await service.register(parsed.data!);
-
-    res.status(201).json(result);
+    const dto = RegisterRequestSchema.parse(req.body);
+    const result = await service.register(dto);
+    return res.status(201).json(result);
   }
 
   async login(req: Request, res: Response) {
-    const parsed = LoginRequestSchema.safeParse(req.body);
-    const result = await service.login(parsed.data!);
-    res.status(200).json(result);
+    const dto = LoginRequestSchema.parse(req.body);
+    const result = await service.login(dto);
+    return res.status(200).json(result);
   }
 
   async me(req: Request, res: Response) {
     const result = await service.me(req.user.id);
-    res.status(200).json(result);
+    return res.status(200).json(result);
   }
 
   async updateMe(req: Request, res: Response) {
-    const parsed = UpdateMeSchema.safeParse(req.body);
-    const result = await service.updateMe(req.user.id, parsed.data!);
-    res.status(200).json(result);
+    const dto = UpdateMeSchema.parse(req.body);
+    const result = await service.updateMe(req.user.id, dto);
+    return res.status(200).json(result);
   }
 }
 

@@ -3,7 +3,7 @@ import { AppError } from "../../middlewares/error";
 import { CreateGoalDto } from "./dtos/create-goal.dto";
 import { UpdateGoalDto } from "./dtos/update-goal.dto";
 
-class goalService {
+class GoalService {
   async create(userId: number, dto: CreateGoalDto) {
     return await prisma.goal.create({
       data: {
@@ -31,67 +31,65 @@ class goalService {
   }
 
   async getOne(id: number, userId: number) {
-    const result = await prisma.goal.findFirst({
+    const goal = await prisma.goal.findFirst({
       where: {
         id,
+        userId,
       },
     });
 
-    if (!result) {
+    if (!goal) {
       throw new AppError("Goal not found", 404);
     }
 
-    if (result.userId !== userId) {
-      throw new AppError("Goal not found", 404);
-    }
-
-    return result;
+    return goal;
   }
 
   async update(id: number, userId: number, dto: UpdateGoalDto) {
-    const result = await prisma.goal.findFirst({
+    const goal = await prisma.goal.findFirst({
       where: {
         id,
+        userId,
       },
     });
 
-    if (!result) {
+    if (!goal) {
       throw new AppError("Goal not found", 404);
     }
 
-    if (result.userId !== userId) {
-      throw new AppError("Goal not found", 404);
-    }
+    const updateData: {
+      title?: string;
+      amountCurrent?: number;
+      amountGoal?: number;
+      date?: Date;
+    } = {};
+
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.amountCurrent !== undefined) updateData.amountCurrent = dto.amountCurrent;
+    if (dto.amountGoal !== undefined) updateData.amountGoal = dto.amountGoal;
+    if (dto.date) updateData.date = new Date(dto.date);
 
     return await prisma.goal.update({
       where: {
         id,
       },
-      data: {
-        title: dto.title,
-        amountCurrent: dto.amountCurrent,
-        amountGoal: dto.amountGoal,
-        date: dto.date ? new Date(dto.date) : undefined,
-      },
+      data: updateData,
     });
   }
 
   async delete(id: number, userId: number) {
-    const result = await prisma.goal.findFirst({
+    const goal = await prisma.goal.findFirst({
       where: {
         id,
+        userId,
       },
     });
 
-    if (!result) {
+    if (!goal) {
       throw new AppError("Goal not found", 404);
     }
 
-    if (result.userId !== userId) {
-      throw new AppError("Goal not found", 404);
-    }
-
-    return await prisma.goal.delete({
+    await prisma.goal.delete({
       where: {
         id,
       },
@@ -99,4 +97,4 @@ class goalService {
   }
 }
 
-export default new goalService();
+export default new GoalService();

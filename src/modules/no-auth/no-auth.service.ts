@@ -7,7 +7,7 @@ import { VerifyTokenDto } from "./dtos/verify-token.dto";
 import { ResetPasswordDto } from "./dtos/reset-password.dto";
 import bcrypt from "bcrypt";
 
-class noAuthService {
+class NoAuthService {
   async forgotPassword(dto: ForgotPasswordDto) {
     const user = await prisma.user.findFirst({
       where: { email: dto.email },
@@ -56,13 +56,8 @@ class noAuthService {
     });
 
     if (!user) {
-      throw new AppError("User not found", 404);
+      throw new AppError("Invalid or expired token", 401);
     }
-
-    return {
-      status: "ok",
-      message: "Token is valid",
-    };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -96,22 +91,16 @@ class noAuthService {
         tokenExpiresAt: null,
       },
     });
-    return {
-      message: "Password updated successfully",
-    };
   }
 
   private hashOtp(code: string): string {
     return crypto.createHash("sha256").update(code).digest("hex");
   }
 
-  private compareOtp(code: string, hash: string): boolean {
-    return this.hashOtp(code) === hash;
-  }
 
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 }
 
-export default new noAuthService();
+export default new NoAuthService();

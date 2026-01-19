@@ -3,20 +3,25 @@ import service from "./transaction.service";
 import { CreateTransactionSchema } from "./dtos/create-transaction.dto";
 import { GetTransactionsQuerySchema } from "./dtos/get-transaction.dto";
 import { UpdateTransactionSchema } from "./dtos/update-transaction.dto";
-import { AppError } from "../../middlewares/error";
+import { z } from "zod";
+
+const IdParamSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const DeleteScopeQuerySchema = z.object({
+  scope: z.enum(["all", "one"]).optional().default("one"),
+});
 
 class TransactionController {
   async createTransaction(req: Request, res: Response) {
     const dto = CreateTransactionSchema.parse(req.body);
-
     const transaction = await service.createTransaction(req.user.id, dto);
-
     return res.status(201).json(transaction);
   }
 
   async getTransactions(req: Request, res: Response) {
     const query = GetTransactionsQuerySchema.parse(req.query);
-
     const data = await service.getTransactions(req.user.id, query);
 
     const limit = query.limit ?? 20;
@@ -30,42 +35,30 @@ class TransactionController {
   }
 
   async getOneTransaction(req: Request, res: Response) {
-    const result = await service.getOne(+req.params.id);
-
+    const { id } = IdParamSchema.parse(req.params);
+    const result = await service.getOne(id, req.user.id);
     return res.status(200).json(result);
   }
 
   async updateTransaction(req: Request, res: Response) {
+    const { id } = IdParamSchema.parse(req.params);
     const dto = UpdateTransactionSchema.parse(req.body);
-
-    const result = await service.updateTransaction(
-      +req.params.id,
-      req.user.id,
-      dto,
-    );
-
+    const result = await service.updateTransaction(id, req.user.id, dto);
     return res.status(200).json(result);
   }
 
   async deleteTransaction(req: Request, res: Response) {
-    const id = Number(req.params.id);
+    const { id } = IdParamSchema.parse(req.params);
+    const { scope } = DeleteScopeQuerySchema.parse(req.query);
+    const deleteScope = scope === "all" ? "ALL" : "ONE";
 
-    if (!id) {
-      throw new AppError("Invalid transaction id", 400);
-    }
-
-    const scope = req.query.scope === "all" ? "ALL" : "ONE";
-
-    await service.deleteTransaction(id, req.user.id, scope);
-
+    await service.deleteTransaction(id, req.user.id, deleteScope);
     return res.status(204).send();
   }
 
   async deleteAllInstallments(req: Request, res: Response) {
-    const id = Number(req.params.id);
-
+    const { id } = IdParamSchema.parse(req.params);
     await service.deleteTransaction(id, req.user.id, "ALL");
-
     return res.status(204).send();
   }
 }

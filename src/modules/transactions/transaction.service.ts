@@ -99,13 +99,18 @@ class TransactionService {
     });
   }
 
-  async getOne(id: number) {
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
+  async getOne(id: number, userId: number) {
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id,
+        userId,
+      },
     });
+
     if (!transaction) {
       throw new AppError("Transaction not found", 404);
     }
+
     return transaction;
   }
 
