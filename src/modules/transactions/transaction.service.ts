@@ -178,8 +178,6 @@ class TransactionService {
     throw new AppError("Invalid delete operation", 400);
   }
 
-  
-
   private async createOneTime(userId: number, dto: CreateTransactionDto) {
     return prisma.transaction.create({
       data: {
@@ -259,20 +257,34 @@ class TransactionService {
 
     const baseDate = new Date(dto.date);
 
+    // 1. Calculamos o valor base da parcela (arredondado para baixo)
+    const installmentAmount = Math.floor(dto.amount / dto.totalInstallment);
+
+    // 2. Calculamos quanto sobra (o resto da divisão)
+    const remainder = dto.amount % dto.totalInstallment;
+
     const transactions = [];
+
     for (let i = 1; i <= dto.totalInstallment; i++) {
       const installmentDate = new Date(baseDate);
       installmentDate.setMonth(baseDate.getMonth() + (i - 1));
 
+      // 3. Se for a ÚLTIMA parcela, somamos o resto (remainder)
+      // Assim o valor total sempre baterá com o dto.amount original
+      const finalAmount =
+        i === dto.totalInstallment
+          ? installmentAmount + remainder
+          : installmentAmount;
+
       transactions.push({
         title: dto.title,
-        amount: dto.amount,
+        amount: finalAmount, // ✅ Valor dividido corretamente
         category: dto.category,
         type: dto.type,
         recurrence: TransactionRecurrence.INSTALLMENT,
         totalInstallment: dto.totalInstallment,
         installmentIndex: i,
-        date: installmentDate, // ✅ Date
+        date: installmentDate,
         userId,
       });
     }
@@ -281,7 +293,6 @@ class TransactionService {
       data: transactions,
     });
   }
-
   private formatDateOnly(date: Date): string {
     return date.toISOString().slice(0, 10); // yyyy-mm-dd
   }
