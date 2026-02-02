@@ -8,11 +8,16 @@ import { LoginRequestDto } from "./dtos/login-request.dto";
 import { UpdateMeDto } from "./dtos/update-me.dto";
 import { Plan } from "../../generated/prisma/enums";
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new AppError("JWT_SECRET is not defined", 500);
+  }
+  return secret;
+}
+
 class AuthService {
   async register(dto: RegisterRequestDto) {
-    if (!process.env.JWT_SECRET) {
-      throw new AppError("JWT_SECRET is not defined", 500);
-    }
     const existingUser = await prisma.user.findFirst({
       where: {
         email: dto.email,
@@ -183,7 +188,7 @@ class AuthService {
         name: user.name,
         email: user.email,
       },
-      process.env.JWT_SECRET!,
+      getJwtSecret(),
       {
         expiresIn: "1d",
       },

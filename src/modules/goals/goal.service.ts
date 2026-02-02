@@ -30,32 +30,22 @@ class GoalService {
     };
   }
 
-  async getOne(id: number, userId: number) {
+  private async findGoalOrFail(id: number, userId: number) {
     const goal = await prisma.goal.findFirst({
-      where: {
-        id,
-        userId,
-      },
+      where: { id, userId },
     });
-
     if (!goal) {
       throw new AppError("Goal not found", 404);
     }
-
     return goal;
   }
 
-  async update(id: number, userId: number, dto: UpdateGoalDto) {
-    const goal = await prisma.goal.findFirst({
-      where: {
-        id,
-        userId,
-      },
-    });
+  async getOne(id: number, userId: number) {
+    return this.findGoalOrFail(id, userId);
+  }
 
-    if (!goal) {
-      throw new AppError("Goal not found", 404);
-    }
+  async update(id: number, userId: number, dto: UpdateGoalDto) {
+    await this.findGoalOrFail(id, userId);
 
     const updateData: {
       title?: string;
@@ -78,16 +68,7 @@ class GoalService {
   }
 
   async delete(id: number, userId: number) {
-    const goal = await prisma.goal.findFirst({
-      where: {
-        id,
-        userId,
-      },
-    });
-
-    if (!goal) {
-      throw new AppError("Goal not found", 404);
-    }
+    await this.findGoalOrFail(id, userId);
 
     await prisma.goal.delete({
       where: {

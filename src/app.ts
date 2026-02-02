@@ -14,15 +14,12 @@ export const createApp = (): Application => {
   );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  
-  // routes
-  app.use("/v1", routes);
-  
-  // routes
+
   app.get("/health", (req: Request, res: Response) => {
     res.status(200).json({ status: "ok" });
   });
-  
-  app.use(errorHandler)
+  app.use("/v1", routes);
+
+  app.use(errorHandler);
   return app;
 };
