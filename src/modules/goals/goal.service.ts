@@ -1,3 +1,4 @@
+import { checkGoalLimit } from "../../lib/plan-limits";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middlewares/error";
 import { CreateGoalDto } from "./dtos/create-goal.dto";
@@ -5,6 +6,8 @@ import { UpdateGoalDto } from "./dtos/update-goal.dto";
 
 class GoalService {
   async create(userId: number, dto: CreateGoalDto) {
+    await checkGoalLimit(userId);
+
     return await prisma.goal.create({
       data: {
         title: dto.title,

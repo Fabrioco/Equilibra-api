@@ -1,3 +1,4 @@
+import { checkTransactionLimit } from "../../lib/plan-limits";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../middlewares/error";
 import { CreateTransactionDto } from "./dtos/create-transaction.dto";
@@ -27,6 +28,12 @@ export class GetTransactionsQueryDto {
 
 class TransactionService {
   async createTransaction(userId: number, dto: CreateTransactionDto) {
+    const amountToAdd =
+      dto.recurrence === TransactionRecurrence.INSTALLMENT
+        ? Math.max(1, dto.totalInstallment ?? 1)
+        : 1;
+    await checkTransactionLimit(userId, amountToAdd);
+
     switch (dto.recurrence) {
       case TransactionRecurrence.ONE_TIME:
         return this.createOneTime(userId, dto);
